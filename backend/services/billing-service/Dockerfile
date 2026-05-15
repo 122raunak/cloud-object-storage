@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 5004
 
-CMD ["npm", "run", "dev"]
+CMD ["node", "src/server.js"]

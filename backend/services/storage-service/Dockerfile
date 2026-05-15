@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 5002
 
 # Start in dev mode (nodemon)
-CMD ["npm", "run", "dev"]
+CMD ["node", "src/server.js"]

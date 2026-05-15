@@ -3,7 +3,7 @@ const swaggerUi = require("swagger-ui-express")
 const swaggerSpec = require("../config/swagger")
 const controller = require("../controllers/storage.controller")
 const auth = require("../middlewares/auth.middleware")
-const { uploadLimiter } = require("../middlewares/rateLimiter.middleware")
+const { uploadLimiter } = require("../middlewares/ratelimiter.middleware")
 const { validateUpload, validateConfirmUpload } = require("../middlewares/validate.middleware")
 
 const router = express.Router()

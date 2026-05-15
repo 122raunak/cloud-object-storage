@@ -6,15 +6,13 @@ let worker
 
 function setupWorkers() {
   worker = new Worker(
-    "storage-events-metering", 
+    "storage-events-metering",
     async (job) => {
       const { eventId, eventType, data } = job.data
-
       logger.info(
         { jobId: job.id, eventType, userId: data?.userId, attempt: job.attemptsMade + 1 },
         "Metering event received"
       )
-
       await meteringService.recordEvent(eventId, eventType, {
         userId:   data.userId,
         fileId:   data.fileId,
@@ -27,9 +25,11 @@ function setupWorkers() {
       connection: {
         host:                 process.env.REDIS_HOST,
         port:                 parseInt(process.env.REDIS_PORT, 10),
-        maxRetriesPerRequest: null, // Required for BullMQ blocking commands
+        password:             process.env.REDIS_PASSWORD,
+        maxRetriesPerRequest: null,
+        tls: process.env.NODE_ENV === 'production' ? {} : undefined,
       },
-      concurrency: 10, // Process up to 10 events in parallel
+      concurrency: 10,
     }
   )
 
@@ -41,8 +41,6 @@ function setupWorkers() {
   })
 
   worker.on("failed", (job, err) => {
-    // BullMQ automatically retries based on the queue's defaultJobOptions (set in Storage Service).
-    // After all attempts are exhausted, the job moves to the failed set — acts as your DLQ.
     logger.error(
       { jobId: job?.id, eventType: job?.data?.eventType, attempt: job?.attemptsMade, err },
       "Metering job failed"
@@ -50,13 +48,11 @@ function setupWorkers() {
   })
 
   worker.on("error", (err) => logger.error({ err }, "Metering BullMQ worker error"))
-
   logger.info("Metering BullMQ worker started — consuming storage-events-metering queue")
 }
 
 async function teardownWorkers() {
   try {
-    // Waits for any in-progress jobs to finish before closing
     await worker?.close()
     logger.info("Metering BullMQ worker shut down gracefully")
   } catch (err) {

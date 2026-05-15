@@ -4,7 +4,9 @@ const logger = require("../utils/logger")
 const redis = new Redis({
   host:        process.env.REDIS_HOST,
   port:        parseInt(process.env.REDIS_PORT, 10),
+  password:    process.env.REDIS_PASSWORD,
   lazyConnect: true,
+  tls: process.env.NODE_ENV === 'production' ? {} : undefined,
 })
 
 redis.on("connect", () => logger.info("Redis (main) connected"))

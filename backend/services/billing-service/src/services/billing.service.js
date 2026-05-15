@@ -38,7 +38,9 @@ const billingEventsQueue = new Queue("billing-events", {
   connection: {
     host: process.env.REDIS_HOST,
     port: parseInt(process.env.REDIS_PORT, 10),
+    password:             process.env.REDIS_PASSWORD,
     maxRetriesPerRequest: null,
+    tls: process.env.NODE_ENV === 'production' ? {} : undefined,
   },
 })
 

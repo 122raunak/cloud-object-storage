@@ -3,9 +3,11 @@ const { v4: uuid } = require("uuid")
 const logger = require("../utils/logger")
 
 const redisConnection = {
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT, 10),
-  maxRetriesPerRequest: null
+  host:                 process.env.REDIS_HOST,
+  port:                 parseInt(process.env.REDIS_PORT, 10),
+  password:             process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null,
+  tls: process.env.NODE_ENV === 'production' ? {} : undefined,
 }
 
 const jobOptions = {
@@ -15,7 +17,6 @@ const jobOptions = {
   removeOnFail: { age: 7 * 24 * 3600 },
 }
 
-// ← Two separate queues — one per consumer service
 const meteringQueue     = new Queue("storage-events-metering",     { connection: redisConnection })
 const notificationQueue = new Queue("storage-events-notification", { connection: redisConnection })
 
@@ -36,7 +37,6 @@ exports.publishEvent = async (eventType, data) => {
   }
 
   try {
-    // Publish to BOTH queues simultaneously
     await Promise.all([
       meteringQueue.add(eventType, payload, { jobId: `metering-${eventId}`, ...jobOptions }),
       notificationQueue.add(eventType, payload, { jobId: `notification-${eventId}`, ...jobOptions }),

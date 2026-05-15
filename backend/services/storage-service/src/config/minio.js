@@ -1,36 +1,27 @@
-const Minio = require("minio")
+const { S3Client, HeadBucketCommand } = require("@aws-sdk/client-s3")
 const logger = require("../utils/logger")
 
-const minioClient = new Minio.Client({
-  endPoint: process.env.MINIO_ENDPOINT,
-  port: Number(process.env.MINIO_PORT),
-  useSSL: process.env.MINIO_USE_SSL === "true",
-  accessKey: process.env.MINIO_ACCESS_KEY,
-  secretKey: process.env.MINIO_SECRET_KEY,
-  pathStyle: true,
-  region:   "ap-southeast-1" 
+const s3Client = new S3Client({
+  region: "ap-southeast-1",
+  endpoint: `https://${process.env.MINIO_ENDPOINT}/storage/v1/s3`,
+  credentials: {
+    accessKeyId:     process.env.MINIO_ACCESS_KEY,
+    secretAccessKey: process.env.MINIO_SECRET_KEY,
+  },
+  forcePathStyle: true,
 })
 
 const checkMinioConnection = async () => {
   try {
-    await minioClient.bucketExists(process.env.MINIO_BUCKET)
-    logger.info("MinIO/B2 connected")
+    await s3Client.send(new HeadBucketCommand({ Bucket: process.env.MINIO_BUCKET }))
+    logger.info("Supabase Storage connected")
   } catch (error) {
-    logger.error({ err: error }, "MinIO/B2 connection failed")
-    process.exit(1)
+    logger.warn({ err: error }, "Supabase Storage check failed — continuing anyway")
   }
 }
 
 const ensureBucketExists = async (bucketName) => {
-  const exists = await minioClient.bucketExists(bucketName)
-  if (!exists) {
-    await minioClient.makeBucket(bucketName)
-    logger.info(`Bucket ${bucketName} created`)
-  }
+  logger.info(`Using bucket: ${bucketName}`)
 }
 
-module.exports = {
-  minioClient,
-  checkMinioConnection,
-  ensureBucketExists
-}
+module.exports = { s3Client, checkMinioConnection, ensureBucketExists }

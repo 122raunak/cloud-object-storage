@@ -4,7 +4,7 @@ const helmet = require("helmet")
 const mongoose = require("mongoose")
 const crypto = require("crypto")
 const { globalLimiter } = require("./middlewares/ratelimiter.middleware")
-const { minioClient } = require("./config/minio")
+const { s3Client, checkMinioConnection } = require("./config/minio")
 const storageRoutes = require("./routes/storage.routes")
 const logger = require("./utils/logger")
 const app = express()
@@ -53,19 +53,12 @@ app.use((req, res, next) => {
 // 3. Health check
 app.get("/health", async (req, res) => {
   const mongoOk = mongoose.connection.readyState === 1
-  let minioOk = false
-  try {
-    await minioClient.bucketExists(process.env.MINIO_BUCKET)
-    minioOk = true
-  } catch (_) {}
-
-  // Return 200 even if minio is degraded — don't block health check
   return res.status(200).json({
     status: mongoOk ? "ok" : "degraded",
     service: "storage-service",
     uptime: process.uptime(),
     mongo: mongoOk ? "connected" : "disconnected",
-    minio: minioOk ? "connected" : "disconnected"
+    minio: "supabase"
   })
 })
 

@@ -2,7 +2,7 @@ const { S3Client, HeadBucketCommand } = require("@aws-sdk/client-s3")
 const logger = require("../utils/logger")
 
 const s3Client = new S3Client({
-  region: "ap-southeast-1",
+  region: "ap-southeast-2",
   endpoint: `https://${process.env.MINIO_ENDPOINT}/storage/v1/s3`,
   credentials: {
     accessKeyId:     process.env.MINIO_ACCESS_KEY,

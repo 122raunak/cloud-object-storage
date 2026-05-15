@@ -22,7 +22,11 @@ const startServer = async () => {
     await initDB()
 
     // 2. Verify SMTP connection — fail fast if credentials are wrong
-    await verifyMailer()
+    try {
+      await verifyMailer()
+    } catch (err) {
+      logger.warn({ err }, "SMTP verification failed — emails may not work but server will continue")
+    }
 
     // 3. Start BullMQ workers
     setupWorkers()

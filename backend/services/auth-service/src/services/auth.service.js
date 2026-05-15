@@ -3,6 +3,7 @@ const crypto = require("crypto")
 const jwt = require("jsonwebtoken")
 const User = require("../models/users.models")
 const ApiError = require("../utils/ApiError")
+const logger = require("../utils/logger")
 
 
 class AuthService {

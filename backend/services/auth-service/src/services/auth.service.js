@@ -1,3 +1,4 @@
+const axios = require("axios")
 const crypto = require("crypto")
 const jwt = require("jsonwebtoken")
 const User = require("../models/users.models")
@@ -56,26 +57,42 @@ class AuthService {
         if (!email || !password) {
             throw new ApiError(400, "Email and password are required")
         }
-
         const user = await User.findOne({ email }).select("+password")
         if (!user) {
             throw new ApiError(404, "User not found")
         }
-
         const isPasswordCorrect = await user.isPasswordCorrect(password)
         if (!isPasswordCorrect) {
             throw new ApiError(401, "Invalid credentials")
         }
-
         if (user.isSuspended) {
             throw new ApiError(403, `Account suspended: ${user.suspendReason || "Contact support"}`)
         }
-
         const { accessToken, refreshToken } = await this.#generateTokens(user)
-
         const loggedInUser = user.toObject()
         delete loggedInUser.password
         delete loggedInUser.refreshToken
+
+        // Fire and forget — send login alert to notification service
+        try {
+            await axios.post(
+                `${process.env.NOTIFICATION_SERVICE_URL}/api/v1/notifications/login-alert`,
+                {
+                    userId:    user._id.toString(),
+                    ipAddress: "0.0.0.0",
+                    timestamp: new Date().toISOString(),
+                },
+                {
+                    headers: {
+                        "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
+                    },
+                    timeout: 5000
+                }
+            )
+        } catch (err) {
+            // Non-fatal — don't block login if notification fails
+            console.warn("Failed to send login alert:", err.message)
+        }
 
         return { accessToken, refreshToken, user: loggedInUser }
     }

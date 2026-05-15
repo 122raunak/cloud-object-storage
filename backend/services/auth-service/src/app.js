@@ -22,6 +22,18 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"]
 }))
 
+// ─── Health Check ──────────────────────────────────────────────────────────────
+
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "ok",
+        service: "auth-service",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    })
+})
+
+
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────
 
 const globalLimiter = rateLimit({
@@ -61,16 +73,6 @@ app.use((req, res, next) => {
     next()
 })
 
-// ─── Health Check ──────────────────────────────────────────────────────────────
-
-app.get("/health", (req, res) => {
-    res.status(200).json({
-        status: "ok",
-        service: "auth-service",
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-    })
-})
 
 
 

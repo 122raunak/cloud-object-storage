@@ -74,6 +74,7 @@ class AuthService {
         delete loggedInUser.refreshToken
 
         // Fire and forget — send login alert to notification service
+        logger.info({ userId: user._id.toString(), notificationUrl: process.env.NOTIFICATION_SERVICE_URL }, "Sending login alert")
         try {
             await axios.post(
                 `${process.env.NOTIFICATION_SERVICE_URL}/api/v1/notifications/login-alert`,
@@ -91,7 +92,7 @@ class AuthService {
             )
         } catch (err) {
             // Non-fatal — don't block login if notification fails
-            console.warn("Failed to send login alert:", err.message)
+            logger.warn({ err: err.message }, "Failed to send login alert")
         }
 
         return { accessToken, refreshToken, user: loggedInUser }

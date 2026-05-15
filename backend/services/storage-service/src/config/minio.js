@@ -12,10 +12,10 @@ const minioClient = new Minio.Client({
 
 const checkMinioConnection = async () => {
   try {
-    await minioClient.listBuckets()
-    logger.info("MinIO connected")
+    await minioClient.bucketExists(process.env.MINIO_BUCKET)
+    logger.info("MinIO/B2 connected")
   } catch (error) {
-    logger.error({ err: error }, "MinIO connection failed")
+    logger.error({ err: error }, "MinIO/B2 connection failed")
     process.exit(1)
   }
 }

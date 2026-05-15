@@ -1,0 +1,251 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cloud-network
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cloud-network
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - cloud-network
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SERVER_URL: "http://localhost:9000"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - cloud-network
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: auth-service
+    restart: always
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    depends_on:
+      - mongodb
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: ${MONGO_URI}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
+      PORT: ${AUTH_SERVICE_PORT}
+      NODE_ENV: ${NODE_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}  
+      USER_STORAGE_QUOTA_GB: ${USER_STORAGE_QUOTA_GB}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET} 
+    volumes:
+      - ./services/auth-service:/app
+      - /app/node_modules
+    networks:
+      - cloud-network
+
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    depends_on:
+      - auth-service
+      - redis
+    env_file:
+      - .env
+    environment:
+      PORT: ${GATEWAY_PORT}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      STORAGE_SERVICE_URL: ${STORAGE_SERVICE_URL}
+      BILLING_SERVICE_URL: ${BILLING_SERVICE_URL}
+      METERING_SERVICE_URL: ${METERING_SERVICE_URL}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      NODE_ENV: ${NODE_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/node_modules
+    networks:
+      - cloud-network
+
+  storage-service:
+    build: ./services/storage-service
+    container_name: storage-service
+    restart: always
+    ports:
+      - "${STORAGE_SERVICE_PORT}:${STORAGE_SERVICE_PORT}"
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+      - minio
+      - redis
+    environment:
+      PORT: ${STORAGE_SERVICE_PORT}
+      STORAGE_MONGO_URI: ${STORAGE_MONGO_URI}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
+      MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      ALLOWED_FILE_TYPES: ${ALLOWED_FILE_TYPES}
+      ALLOWED_EXTENSIONS: ${ALLOWED_EXTENSIONS}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE}
+      PRESIGNED_URL_EXPIRY: ${PRESIGNED_URL_EXPIRY}
+      USER_STORAGE_QUOTA: ${USER_STORAGE_QUOTA}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      NODE_ENV: ${NODE_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+    volumes:
+      - ./services/storage-service:/app
+      - /app/node_modules
+    networks:
+      - cloud-network
+
+  metering-service:
+    build: ./services/metering-service
+    container_name: metering-service
+    restart: always
+    ports:
+      - "${METERING_SERVICE_PORT}:5003"
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .env
+    environment:
+      PORT: ${METERING_SERVICE_PORT}
+      NODE_ENV: ${NODE_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      POSTGRES_HOST: postgres        # always use service name, not env var
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: metering_db       # hardcoded — this service always uses metering_db
+      REDIS_HOST: redis              # always use service name, not env var
+      REDIS_PORT: ${REDIS_PORT}
+    volumes:
+      - ./services/metering-service:/app
+      - /app/node_modules
+    networks:
+      - cloud-network
+
+  billing-service:
+    build: ./services/billing-service
+    container_name: billing-service
+    restart: always
+    ports:
+      - "${BILLING_SERVICE_PORT}:${BILLING_SERVICE_PORT}"
+    depends_on:
+      - postgres
+      - redis
+      - metering-service
+    env_file:
+      - .env
+    environment:
+      PORT: ${BILLING_SERVICE_PORT}
+      NODE_ENV: ${NODE_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: billing_db
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      METERING_SERVICE_URL: ${METERING_SERVICE_URL}
+    volumes:
+      - ./services/billing-service:/app
+      - /app/node_modules
+    networks:
+      - cloud-network
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: notification-service
+    restart: always
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:5005"
+    depends_on:
+      - mongodb
+      - redis
+    env_file:
+      - .env
+    environment:
+      PORT: ${NOTIFICATION_SERVICE_PORT}
+      NODE_ENV: ${NODE_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      MONGODB_URI: mongodb://mongodb:27017/notification_db
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
+      USER_STORAGE_QUOTA_GB: ${USER_STORAGE_QUOTA_GB}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}   # ADD THIS
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY} 
+    volumes:
+      - ./services/notification-service:/app
+      - /app/node_modules
+    networks:
+      - cloud-network
+
+volumes:
+  mongo_data:
+  postgres_data:
+  minio_data:
+
+networks:
+  cloud-network:
+    driver: bridge

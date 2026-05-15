@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+**/.env
+!.env.example
+**/.env.example
+
+# Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test-digest.js
+
+# IDE
+.vscode/
+.idea/
+
+# Docker volumes
+**/data/
+**/pgdata/

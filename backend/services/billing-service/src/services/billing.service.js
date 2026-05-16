@@ -26,11 +26,11 @@ const calculateCharge = (usage, tier) => {
 
   // Return strings — NUMERIC columns in Postgres accept them and preserve precision.
   return {
-    storage_charge:  storage_charge.toFixed(4),
-    upload_charge:   upload_charge.toFixed(4),
-    download_charge: download_charge.toFixed(4),
-    api_charge:      api_charge.toFixed(4),
-    total_amount:    total_amount.toFixed(4),
+    storage_charge:  storage_charge.toFixed(8),
+    upload_charge:   upload_charge.toFixed(8),
+    download_charge: download_charge.toFixed(8),
+    api_charge:      api_charge.toFixed(8),
+    total_amount:    total_amount.toFixed(8),
   }
 }
 

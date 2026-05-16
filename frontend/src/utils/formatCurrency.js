@@ -1,19 +1,8 @@
-export function formatCurrency(amount, currency = 'USD') {
-  const num = parseFloat(amount) || 0
-
-  if (num > 0 && num < 0.01) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 4,
-      maximumFractionDigits: 4,
-    }).format(num)
-  }
-
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num)
+export function formatCurrency(amount) {
+  const num = Number(amount) || 0
+  if (num === 0) return '$0.00'
+  if (num < 0.0001) return `$${num.toFixed(8)}`
+  if (num < 0.01) return `$${num.toFixed(6)}`
+  if (num < 1) return `$${num.toFixed(4)}`
+  return `$${num.toFixed(2)}`
 }

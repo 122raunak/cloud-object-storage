@@ -80,7 +80,7 @@ class NotificationService {
   async getUnreadCount(userId) {
     const count = await Notification.countDocuments({ 
       userId,
-      status: "sent",
+      status: { $in: ["sent", "failed" , "pending"] },
       read: { $ne: true }
     })
     return { count }

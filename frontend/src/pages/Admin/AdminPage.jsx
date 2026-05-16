@@ -28,6 +28,22 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [showSuspendModal, setShowSuspendModal] = useState(null)
   const [suspendReason, setSuspendReason] = useState('')
+  const [invoiceMonth, setInvoiceMonth] = useState('')
+  const [invoiceLoading, setInvoiceLoading] = useState(false)
+
+  const handleGenerateInvoice = async (userId) => {
+    if (!invoiceMonth) return
+    const [year, month] = invoiceMonth.split('-').map(Number)
+    setInvoiceLoading(true)
+    try {
+      await billingApi.generateInvoice(userId, year, month)
+      showMsg(`Invoice generated for ${invoiceMonth}`)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to generate invoice')
+    } finally {
+      setInvoiceLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!isAdmin) { navigate('/dashboard'); return }
@@ -460,14 +476,41 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+
+              {/* Generate Invoice */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 16 }}>
+                <div style={{ fontWeight: 500, marginBottom: 12 }}>
+                  Generate Invoice
+                  <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                    Generate invoice for a past month
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input
+                    type="month"
+                    className="form-input"
+                    style={{ width: 160 }}
+                    max={new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().slice(0, 7)}
+                    value={invoiceMonth}
+                    onChange={(e) => setInvoiceMonth(e.target.value)}
+                  />
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    disabled={!invoiceMonth || invoiceLoading}
+                    onClick={() => handleGenerateInvoice(selectedUser._id)}
+                  >
+                    {invoiceLoading ? '...' : 'Generate Invoice'}
+                  </button>
+                </div>
+              </div>
             </>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
               No usage data available for this user yet.
             </div>
           )}
-        </div>
-      )}
+</div>
+)}
     </div>
   )
 }

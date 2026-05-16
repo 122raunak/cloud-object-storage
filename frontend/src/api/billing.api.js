@@ -7,4 +7,5 @@ export const billingApi = {
   getCurrentEstimate: (userId)            => api.get(`/api/billing/current/${userId}`, { params: { _t: Date.now() } }),
   getEstimate:        (userId)            => api.get(`/api/billing/current/${userId}`, { params: { _t: Date.now() } }),
   assignPlan: (userId, tierId) => api.put(`/api/billing/plans/${userId}`, { tierId }),
+  generateInvoice:    (userId, year, month) => api.post(`/api/billing/generate/${userId}`, { year, month }),
 }

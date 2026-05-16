@@ -34,6 +34,8 @@ export default function FilesPage() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [actionLoading, setActionLoading] = useState({})
   const [localError, setLocalError] = useState('')
+  const [selected, setSelected] = useState(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
 
   const load = useCallback((p = page) => {
     fetchFiles({
@@ -46,7 +48,7 @@ export default function FilesPage() {
     })
   }, [page, search, mimeType, sortBy, fetchFiles, showDeleted])
 
-  useEffect(() => { load(1); setPage(1) }, [search, mimeType, sortBy, showDeleted])
+  useEffect(() => { load(1); setPage(1); setSelected(new Set()) }, [search, mimeType, sortBy, showDeleted])
   useEffect(() => { load(page) }, [page])
 
   const handleSearch = (e) => setSearch(e.target.value)
@@ -88,6 +90,40 @@ export default function FilesPage() {
     }
   }
 
+  // ── Bulk select helpers ─────────────────────────────────────────────────────
+  const activeFiles = files.filter(f => !(f.deleted || f.isDeleted))
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selected.size === activeFiles.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(activeFiles.map(f => f._id || f.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return
+    if (!window.confirm(`Delete ${selected.size} selected file(s)? They can be restored later.`)) return
+    setBulkLoading(true)
+    try {
+      await Promise.all([...selected].map(id => deleteFile(id)))
+      setSelected(new Set())
+      load(page)
+    } catch (err) {
+      setLocalError(err.response?.data?.message || 'Bulk delete failed')
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
   const totalPages = Math.ceil(pagination.total / 20) || 1
 
   const getStatusBadge = (file) => {
@@ -113,6 +149,15 @@ export default function FilesPage() {
           <div className="page-subtitle">{pagination.total} files total</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          {selected.size > 0 && (
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={handleBulkDelete}
+              disabled={bulkLoading}
+            >
+              {bulkLoading ? '...' : `🗑 Delete ${selected.size} selected`}
+            </button>
+          )}
           <button
             className={`btn btn-sm ${showDeleted ? 'btn-danger' : 'btn-secondary'}`}
             onClick={() => setShowDeleted(d => !d)}
@@ -173,6 +218,14 @@ export default function FilesPage() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 40 }}>
+                  <input
+                    type="checkbox"
+                    checked={activeFiles.length > 0 && selected.size === activeFiles.length}
+                    onChange={toggleSelectAll}
+                    title="Select all active files"
+                  />
+                </th>
                 <th>Name</th>
                 <th>Size</th>
                 <th>Type</th>
@@ -186,8 +239,18 @@ export default function FilesPage() {
                 const id = file._id || file.id
                 const name = file.fileName || file.name
                 const isDeleted = file.deleted || file.isDeleted
+                const isSelected = selected.has(id)
                 return (
-                  <tr key={id}>
+                  <tr key={id} style={{ background: isSelected ? 'var(--bg-elevated)' : undefined }}>
+                    <td>
+                      {!isDeleted && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(id)}
+                        />
+                      )}
+                    </td>
                     <td style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
                       {name}
                     </td>

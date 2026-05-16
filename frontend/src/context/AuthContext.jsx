@@ -1,3 +1,10 @@
+import { createContext, useState, useEffect, useCallback } from 'react'
+import { authApi } from '../api/auth.api.js'
+import { notificationsApi } from '../api/notifications.api.js'
+import { setAccessToken, clearAccessToken } from '../api/axios.js'
+
+export const AuthContext = createContext(null)
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)

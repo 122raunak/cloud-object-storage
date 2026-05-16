@@ -52,7 +52,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="auth-title">Create account</div>
-        <div className="auth-subtitle">Get started with NimbusStore today</div>
+        <div className="auth-subtitle">Get started with CloudStore today</div>
 
         {error && <div className="error-msg">{error}</div>}
 

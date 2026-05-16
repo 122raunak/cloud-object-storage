@@ -1,10 +1,3 @@
-import { createContext, useState, useEffect, useCallback } from 'react'
-import { authApi } from '../api/auth.api.js'
-import { notificationsApi } from '../api/notifications.api.js'
-import { setAccessToken, clearAccessToken } from '../api/axios.js'
-
-export const AuthContext = createContext(null)
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
@@ -19,6 +12,13 @@ export function AuthProvider({ children }) {
       setUnreadCount(d.count ?? d.unreadCount ?? 0)
     } catch { /* silent */ }
   }, [])
+
+  useEffect(() => {
+    if (!user?._id) return
+    fetchUnreadCount(user._id)
+    const interval = setInterval(() => fetchUnreadCount(user._id), 30000)
+    return () => clearInterval(interval)
+  }, [user?._id])
 
   useEffect(() => {
     async function restoreSession() {
@@ -53,12 +53,6 @@ export function AuthProvider({ children }) {
     setToken(accessToken)
     setUser(userData)
     fetchUnreadCount(userData._id)
-    useEffect(() => {
-      if (!user?._id) return
-      fetchUnreadCount(user._id)
-      const interval = setInterval(() => fetchUnreadCount(user._id), 30000)
-      return () => clearInterval(interval)
-    }, [user?._id])
     return userData
   }, [])
 

@@ -53,6 +53,12 @@ export function AuthProvider({ children }) {
     setToken(accessToken)
     setUser(userData)
     fetchUnreadCount(userData._id)
+    useEffect(() => {
+      if (!user?._id) return
+      fetchUnreadCount(user._id)
+      const interval = setInterval(() => fetchUnreadCount(user._id), 30000)
+      return () => clearInterval(interval)
+    }, [user?._id])
     return userData
   }, [])
 

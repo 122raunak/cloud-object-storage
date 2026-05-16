@@ -10,6 +10,7 @@ import { formatBytes } from '../../utils/formatBytes.js'
 import { formatCurrency } from '../../utils/formatCurrency.js'
 import { formatDate } from '../../utils/formatDate.js'
 import UploadModal from '../../components/modals/UploadModal.jsx'
+const { user, unreadCount } = useAuth()
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -79,8 +80,12 @@ export default function DashboardPage() {
         </div>
         <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/notifications')}>
           <div className="stat-label">Notifications</div>
-          <div className="stat-value">—</div>
-          <div className="stat-sub">View all notifications →</div>
+          <div className="stat-value" style={{ color: unreadCount > 0 ? 'var(--accent)' : undefined }}>
+            {unreadCount}
+          </div>
+          <div className="stat-sub">
+            {unreadCount > 0 ? `${unreadCount} unread` : 'View all notifications →'}
+          </div>
         </div>
         <div className="stat-card">
           <div className="stat-label">API Calls</div>

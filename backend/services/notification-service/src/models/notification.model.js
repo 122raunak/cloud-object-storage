@@ -50,6 +50,11 @@ const notificationSchema = new mongoose.Schema(
     sentAt: {
       type: Date,
     },
+    read: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     // TTL index — MongoDB auto-deletes documents 90 days after createdAt
     createdAt: {
       type: Date,

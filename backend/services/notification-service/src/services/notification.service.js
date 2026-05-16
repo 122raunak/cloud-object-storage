@@ -78,10 +78,11 @@ class NotificationService {
   }
 
   async getUnreadCount(userId) {
-    // "pending" = queued but not yet sent.
-    // NOTE: For a true "unread by user" count, add a `read` boolean field
-    // to the Notification model and expose a PATCH /read endpoint.
-    const count = await Notification.countDocuments({ userId, status: "pending" })
+    const count = await Notification.countDocuments({ 
+      userId,
+      status: "sent",
+      read: { $ne: true }
+    })
     return { count }
   }
 

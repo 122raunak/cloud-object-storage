@@ -111,4 +111,18 @@ router.put(
   updatePreferences
 )
 
+router.patch(
+  "/:userId/read-all",
+  verifyToken,
+  validateParams(userIdParamsSchema),
+  requireOwnerOrAdmin,
+  async (req, res) => {
+    await Notification.updateMany(
+      { userId: req.params.userId, read: { $ne: true } },
+      { $set: { read: true } }
+    )
+    return res.status(200).json(new ApiResponse(200, null, "All notifications marked as read"))
+  }
+)
+
 module.exports = router

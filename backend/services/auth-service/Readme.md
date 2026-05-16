@@ -13,7 +13,10 @@ Handles all authentication, authorization, and user management for CloudStore.
 - Role-based access control (USER / ADMIN)
 - Suspended user login blocked with 403
 - Notification preferences auto-created on registration
-- Login alert fired to Notification Service on every successful login
+- **Login alert** fired to Notification Service on every successful login with real IP and user agent
+- Rate limiting — strict limit on login/register, relaxed on other routes
+- Health check bypasses rate limiter — never blocked by Render health checks
+- Trust proxy enabled for accurate IP detection behind Render's load balancer
 
 ---
 
@@ -37,6 +40,19 @@ Refresh tokens are hashed with SHA-256 before storage — raw token never persis
 
 ---
 
+## Login Flow
+1. POST /api/auth/login
+→ Validate credentials
+→ Generate access + refresh token pair
+→ Set refresh token as httpOnly cookie
+→ Fire login alert to Notification Service (non-fatal, 15s timeout)
+→ Return access token + user data
+2. Notification Service receives login alert
+→ Saves notification to MongoDB
+→ Sends email via Resend (production) or Nodemailer (local)
+
+---
+
 ## API Endpoints
 
 | Method | Path | Auth | Description |
@@ -55,25 +71,51 @@ Refresh tokens are hashed with SHA-256 before storage — raw token never persis
 
 ---
 
+## Rate Limiting
+
+| Limiter | Routes | Limit |
+|---|---|---|
+| Global | All routes | 100 req / 15 min per IP |
+| Auth strict | `/login`, `/register` | 20 req / 15 min per IP |
+
+Health check (`/health`) bypasses all rate limiters.
+
+---
+
 ## Environment Variables
 
+**Local (`.env`):**
 ```env
 PORT=5001
-MONGODB_URI=mongodb+srv://...
-
+MONGO_URI=mongodb+srv://...
 JWT_ACCESS_SECRET=your-access-secret
 JWT_REFRESH_SECRET=your-refresh-secret
 JWT_ACCESS_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
-
 CORS_ORIGIN=http://localhost:3000
 NOTIFICATION_SERVICE_URL=http://notification-service:5005
 INTERNAL_SERVICE_SECRET=your-secret
-
 RATE_LIMIT_MAX=100
 AUTH_RATE_LIMIT_MAX=20
 LOG_LEVEL=info
 NODE_ENV=development
+```
+
+**Production (Render):**
+```env
+PORT=5001
+MONGO_URI=mongodb+srv://...atlas...auth_db
+JWT_ACCESS_SECRET=your-access-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+CORS_ORIGIN=https://your-app.vercel.app
+NOTIFICATION_SERVICE_URL=https://cloudstore-notification.onrender.com
+INTERNAL_SERVICE_SECRET=your-secret
+RATE_LIMIT_MAX=100
+AUTH_RATE_LIMIT_MAX=20
+LOG_LEVEL=info
+NODE_ENV=production
 ```
 
 ---
@@ -86,6 +128,4 @@ npm run dev
 ```
 
 ## API Docs
-```
 http://localhost:5001/api/v1/auth/docs
-```

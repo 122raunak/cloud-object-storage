@@ -11,10 +11,12 @@ Tracks and aggregates file storage usage per user in real time.
 - Real-time live summary updates on every event (same DB transaction)
 - Daily and monthly usage aggregation via cron jobs
 - Event log with full audit trail per user
+- Single set-based SQL aggregation — no per-user loops (efficient at scale)
 
 ---
 
 ## How It Works
+```
 Storage Service publishes event
 │
 ▼
@@ -31,6 +33,9 @@ UPDATE usage_summaries (daily + monthly) in same transaction
 │
 ▼
 Usage immediately available via API
+```
+---
+
 ---
 
 ## Event Deltas
@@ -54,7 +59,7 @@ Each event type updates summaries differently:
 | Midnight | `5 0 * * *` | Finalize yesterday + recompute current month |
 | Monthly | `10 0 1 * *` | Finalize previous month after rollover |
 
-All aggregation uses a single set-based SQL query — no per-user loops.
+All aggregation uses a single set-based SQL `INSERT ... ON CONFLICT DO UPDATE` — no per-user loops.
 
 ---
 
@@ -72,25 +77,31 @@ All aggregation uses a single set-based SQL query — no per-user loops.
 ## Database Schema
 
 **`usage_events`** — raw event log, append-only
+
 ```sql
 event_id    VARCHAR  UNIQUE  -- idempotency key
 user_id     VARCHAR
 event_type  VARCHAR  -- file.uploaded | file.downloaded | file.deleted | file.restored
 file_id     VARCHAR
+file_name   VARCHAR
 bytes       BIGINT
+mime_type   VARCHAR
 created_at  TIMESTAMPTZ
 ```
 
 **`usage_summaries`** — aggregated per user per period
+
 ```sql
-user_id       VARCHAR
-period_type   VARCHAR  -- daily | monthly
-period_start  DATE
+user_id           VARCHAR
+period_type       VARCHAR  -- daily | monthly
+period_start      DATE
 bytes_uploaded    BIGINT
 bytes_downloaded  BIGINT
 api_calls         BIGINT
-file_count        INTEGER
+file_count        BIGINT
 storage_used      BIGINT
+created_at        TIMESTAMPTZ
+updated_at        TIMESTAMPTZ
 UNIQUE (user_id, period_type, period_start)
 ```
 
@@ -98,6 +109,7 @@ UNIQUE (user_id, period_type, period_start)
 
 ## Environment Variables
 
+**Local (`.env`):**
 ```env
 PORT=5003
 POSTGRES_HOST=postgres
@@ -105,15 +117,32 @@ POSTGRES_PORT=5432
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your-password
 POSTGRES_DB=metering_db
-
 REDIS_HOST=redis
 REDIS_PORT=6379
-
 WORKER_CONCURRENCY=5
 INTERNAL_SERVICE_SECRET=your-secret
 LOG_LEVEL=info
 NODE_ENV=development
 ```
+
+**Production (Render):**
+```env
+PORT=5003
+POSTGRES_HOST=your-neon-host.neon.tech
+POSTGRES_PORT=5432
+POSTGRES_USER=neondb_owner
+POSTGRES_PASSWORD=your-neon-password
+POSTGRES_DB=metering_db
+REDIS_HOST=your-upstash-host.upstash.io
+REDIS_PORT=6379
+REDIS_PASSWORD=your-upstash-password
+WORKER_CONCURRENCY=5
+INTERNAL_SERVICE_SECRET=your-secret
+LOG_LEVEL=info
+NODE_ENV=production
+```
+
+**Note:** Neon PostgreSQL requires SSL — the service automatically enables SSL when `NODE_ENV=production`.
 
 ---
 

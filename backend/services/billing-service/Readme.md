@@ -13,6 +13,7 @@ Handles pricing tiers, usage-based charge calculation, and monthly invoice gener
 - Parallel invoice generation with p-limit (concurrency=10) — handles large user bases efficiently
 - Retry logic on all metering HTTP calls (3 retries with exponential backoff)
 - Invoice.generated event published to BullMQ on creation
+- Admin can manually generate invoices for any user for past months
 
 ---
 
@@ -27,16 +28,19 @@ Handles pricing tiers, usage-based charge calculation, and monthly invoice gener
 ---
 
 ## Charge Calculation
-storageCharge  = MAX(0, storage_used_GB  - free_storage_gb)  × storage_price
-uploadCharge   = MAX(0, bytes_uploaded_GB - free_upload_gb)  × upload_price
+```
+storageCharge  = MAX(0, storage_used_GB   - free_storage_gb)   × storage_price
+uploadCharge   = MAX(0, bytes_uploaded_GB  - free_upload_gb)    × upload_price
 downloadCharge = MAX(0, bytes_downloaded_GB - free_download_gb) × download_price
-apiCharge      = MAX(0, api_calls - free_api_calls) / 1000   × api_call_price
+apiCharge      = MAX(0, api_calls - free_api_calls) / 1000      × api_call_price
 totalAmount = storageCharge + uploadCharge + downloadCharge + apiCharge
-All values computed with decimal.js to 4 decimal places.
+```
+All values computed with decimal.js to 8 decimal places for precision on small amounts.
 
 ---
 
 ## Invoice Generation Flow
+```
 Cron triggers on 1st of month at 00:30 UTC
 │
 ▼
@@ -46,10 +50,10 @@ Fetch all users from user_plans UNION invoices
 For each user (parallel, concurrency=10):
 │
 ▼
-Fetch monthly usage from Metering Service (3 retries)
+Fetch monthly usage from Metering Service (3 retries, exponential backoff)
 │
 ▼
-Calculate charges using pricing tier
+Calculate charges using pricing tier (decimal.js)
 │
 ▼
 INSERT INTO invoices ON CONFLICT DO NOTHING (atomic — no race condition)
@@ -59,6 +63,7 @@ Publish invoice.generated to BullMQ
 │
 ▼
 Notification Service sends invoice email
+```
 ---
 
 ## API Endpoints
@@ -107,13 +112,14 @@ bytes_uploaded   BIGINT
 bytes_downloaded BIGINT
 api_calls        BIGINT
 storage_used     BIGINT
-storage_charge   NUMERIC(12,4)
-upload_charge    NUMERIC(12,4)
-download_charge  NUMERIC(12,4)
-api_charge       NUMERIC(12,4)
-total_amount     NUMERIC(12,4)
+storage_charge   NUMERIC(12,8)
+upload_charge    NUMERIC(12,8)
+download_charge  NUMERIC(12,8)
+api_charge       NUMERIC(12,8)
+total_amount     NUMERIC(12,8)
 currency         VARCHAR(3)
 status           VARCHAR(20)  -- draft | issued | paid | void
+issued_at        TIMESTAMPTZ
 UNIQUE (user_id, period_start)
 ```
 
@@ -121,6 +127,7 @@ UNIQUE (user_id, period_start)
 
 ## Environment Variables
 
+**Local (`.env`):**
 ```env
 PORT=5004
 POSTGRES_HOST=postgres
@@ -128,12 +135,32 @@ POSTGRES_PORT=5432
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your-password
 POSTGRES_DB=billing_db
-
+REDIS_HOST=redis
+REDIS_PORT=6379
 METERING_SERVICE_URL=http://metering-service:5003
 INTERNAL_SERVICE_SECRET=your-secret
 LOG_LEVEL=info
 NODE_ENV=development
 ```
+
+**Production (Render):**
+```env
+PORT=5004
+POSTGRES_HOST=your-neon-host.neon.tech
+POSTGRES_PORT=5432
+POSTGRES_USER=neondb_owner
+POSTGRES_PASSWORD=your-neon-password
+POSTGRES_DB=billing_db
+REDIS_HOST=your-upstash-host.upstash.io
+REDIS_PORT=6379
+REDIS_PASSWORD=your-upstash-password
+METERING_SERVICE_URL=https://cloudstore-metering.onrender.com
+INTERNAL_SERVICE_SECRET=your-secret
+LOG_LEVEL=info
+NODE_ENV=production
+```
+
+**Note:** Neon PostgreSQL requires SSL — the service automatically enables SSL when `NODE_ENV=production`.
 
 ---
 

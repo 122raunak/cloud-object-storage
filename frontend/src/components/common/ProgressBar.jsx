@@ -1,5 +1,6 @@
 export default function ProgressBar({ value = 0, max = 100, showLabel = true }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
+  const displayPct = value > 0 && pct < 1 ? 1 : pct  // ← minimum 1% if any usage
   const cls = pct >= 90 ? 'danger' : pct >= 75 ? 'warn' : ''
   return (
     <div>
@@ -12,7 +13,7 @@ export default function ProgressBar({ value = 0, max = 100, showLabel = true }) 
         </div>
       )}
       <div className="progress-track">
-        <div className={`progress-fill ${cls}`} style={{ width: `${pct}%` }} />
+        <div className={`progress-fill ${cls}`} style={{ width: `${displayPct}%` }} />
       </div>
     </div>
   )

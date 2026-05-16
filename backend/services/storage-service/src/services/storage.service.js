@@ -117,6 +117,22 @@ class StorageService {
     return { downloadUrl }
   }
 
+  async generateShareUrl(userId, fileId, expiry = 3600) {
+  const file = await File.findById(fileId)
+    if (!file) throw new ApiError(404, "File not found")
+    if (file.userId !== userId) throw new ApiError(403, "Forbidden")
+    if (file.isDeleted) throw new ApiError(400, "File is deleted")
+    const shareUrl = await storage.generateDownloadUrl(file.objectKey, expiry)
+    const expiresAt = new Date(Date.now() + expiry * 1000).toISOString()
+    return {
+      shareUrl,
+      fileName: file.fileName,
+      size: file.size,
+      expiresAt,
+      expiresIn: `${Math.round(expiry / 3600)} hour(s)`,
+    }
+  }
+
   // ─── List Files ───────────────────────────────────────────────────────────
   async listFiles(userId, query) {
     const page  = parseInt(query.page)  || 1

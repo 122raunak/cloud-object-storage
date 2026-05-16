@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useFiles } from '../../hooks/useFiles.js'
+import { storageApi } from '../../api/storage.api.js'
 import LoadingSpinner from '../../components/common/LoadingSpinner.jsx'
 import ErrorMessage from '../../components/common/ErrorMessage.jsx'
 import Badge from '../../components/common/Badge.jsx'
@@ -36,6 +37,9 @@ export default function FilesPage() {
   const [localError, setLocalError] = useState('')
   const [selected, setSelected] = useState(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [shareModal, setShareModal] = useState(null)
+  const [shareLoading, setShareLoading] = useState({})
+  const [copiedId, setCopiedId] = useState(null)
 
   const load = useCallback((p = page) => {
     fetchFiles({
@@ -90,7 +94,7 @@ export default function FilesPage() {
     }
   }
 
-  // ── Bulk select helpers ─────────────────────────────────────────────────────
+  // ── Bulk select ─────────────────────────────────────────────────────────────
   const activeFiles = files.filter(f => !(f.deleted || f.isDeleted))
 
   const toggleSelect = (id) => {
@@ -122,6 +126,26 @@ export default function FilesPage() {
     } finally {
       setBulkLoading(false)
     }
+  }
+
+  // ── Share ───────────────────────────────────────────────────────────────────
+  const handleShare = async (fileId, name) => {
+    setShareLoading(a => ({ ...a, [fileId]: true }))
+    try {
+      const res = await storageApi.getShareUrl(fileId, 3600)
+      const data = res.data.data || res.data
+      setShareModal({ fileId, name, ...data })
+    } catch (err) {
+      setLocalError(err.response?.data?.message || 'Share failed')
+    } finally {
+      setShareLoading(a => ({ ...a, [fileId]: false }))
+    }
+  }
+
+  const handleCopy = (text, id) => {
+    navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
   }
 
   const totalPages = Math.ceil(pagination.total / 20) || 1
@@ -265,13 +289,22 @@ export default function FilesPage() {
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {!isDeleted && (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => handleDownload(id)}
-                            disabled={actionLoading[id + '_dl']}
-                          >
-                            {actionLoading[id + '_dl'] ? '...' : 'Download'}
-                          </button>
+                          <>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleDownload(id)}
+                              disabled={actionLoading[id + '_dl']}
+                            >
+                              {actionLoading[id + '_dl'] ? '...' : 'Download'}
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleShare(id, name)}
+                              disabled={shareLoading[id]}
+                            >
+                              {shareLoading[id] ? '...' : '🔗 Share'}
+                            </button>
+                          </>
                         )}
                         {isDeleted ? (
                           <button
@@ -309,6 +342,49 @@ export default function FilesPage() {
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', padding: '0 8px' }}>{page}</span>
           <button className="btn btn-secondary btn-sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>›</button>
           <button className="btn btn-secondary btn-sm" onClick={() => setPage(totalPages)} disabled={page >= totalPages}>»</button>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {shareModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="card" style={{ width: 480, padding: 24 }}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Share File</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+              {shareModal.name}
+            </div>
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                Share URL (expires in {shareModal.expiresIn})
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  readOnly
+                  value={shareModal.shareUrl}
+                  style={{
+                    flex: 1, fontFamily: 'var(--font-mono)', fontSize: 11,
+                    background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                    borderRadius: 6, padding: '6px 10px', color: 'var(--text)'
+                  }}
+                />
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleCopy(shareModal.shareUrl, shareModal.fileId)}
+                >
+                  {copiedId === shareModal.fileId ? '✓ Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+              ⚠️ Anyone with this link can download the file until {new Date(shareModal.expiresAt).toLocaleString()}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setShareModal(null)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
 

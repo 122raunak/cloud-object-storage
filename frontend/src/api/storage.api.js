@@ -8,7 +8,7 @@ export const storageApi = {
   getDownloadUrl:  (fileId) => api.get(`/api/storage/download-url/${fileId}`),
   deleteFile:      (fileId) => api.delete(`/api/storage/${fileId}`),
   restoreFile:     (fileId) => api.patch(`/api/storage/restore/${fileId}`),
-
+  getShareUrl: (fileId, expiry = 3600) => api.get(`/api/storage/share/${fileId}`, { params: { expiry } }),
   uploadToPresignedUrl: (uploadUrl, file, onProgress) =>
     axios.put(uploadUrl, file, {
       headers: { 'Content-Type': file.type },

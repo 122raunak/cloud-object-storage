@@ -16,6 +16,7 @@ router.delete("/:fileId", controller.deleteFile)
 router.patch("/restore/:fileId", controller.restoreFile)
 router.post("/confirm-upload", validateConfirmUpload, controller.confirmUpload)
 router.use("/docs", swaggerUi.serve)
+router.get("/share/:fileId", controller.getShareUrl)
 router.get("/docs", swaggerUi.setup(swaggerSpec))
 
 module.exports = router

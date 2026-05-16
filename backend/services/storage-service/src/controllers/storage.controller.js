@@ -141,11 +141,24 @@ const restoreFile = asyncHandler(async (req, res) => {
   )
 })
 
+// SHARE URL
+const getShareUrl = asyncHandler(async (req, res) => {
+  const userId = validateUser(req)
+  const { fileId } = req.params
+  const expiry = Math.min(parseInt(req.query.expiry) || 3600, 86400)
+  if (!fileId) throw new ApiError(400, "fileId is required")
+  const result = await storageService.generateShareUrl(userId, fileId, expiry)
+  return res.status(200).json(
+    new ApiResponse(200, result, "Share URL generated")
+  )
+})
+
 module.exports = {
   getUploadUrl,
   confirmUpload,
   getDownloadUrl,
   listFiles,
   deleteFile,
-  restoreFile
+  restoreFile,
+  getShareUrl
 }

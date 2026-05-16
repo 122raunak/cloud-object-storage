@@ -58,11 +58,10 @@ axios.post(
   },
   {
     headers: {
-      // KEY FIX: this endpoint now uses verifyInternalService, not verifyToken
       // Remove x-user-id/role/email, add the internal secret instead
       "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET,
     },
-    timeout: 3000,
+    timeout: 15000,
   }
 ).catch((err) => logger.warn({ err: err.message }, "Login alert notification failed"))
 

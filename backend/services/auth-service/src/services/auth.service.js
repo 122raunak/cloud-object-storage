@@ -74,46 +74,23 @@ class AuthService {
         delete loggedInUser.password
         delete loggedInUser.refreshToken
 
-        // Fire and forget — send login alert to notification service
-        // Fire and forget — send login alert to notification service
-logger.info({ userId: user._id.toString(), notificationUrl: process.env.NOTIFICATION_SERVICE_URL }, "Sending login alert")
-try {
-    await axios.post(
-        `${process.env.NOTIFICATION_SERVICE_URL}/api/v1/notifications/login-alert`,
-        {
-            userId:    user._id.toString(),
-            ipAddress: "0.0.0.0",
-            timestamp: new Date().toISOString(),
-        },
-        {
-            headers: {
-                "x-internal-secret": process.env.INTERNAL_SERVICE_SECRET
-            },
-            timeout: 30000  
-        }
-    )
-        logger.info({ userId: user._id.toString() }, "Login alert sent successfully")
-        } catch (err) {
-            logger.warn({ err: err.message }, "Failed to send login alert")
+        return { accessToken, refreshToken, user: loggedInUser }
         }
 
-                return { accessToken, refreshToken, user: loggedInUser }
+        async refreshAccessToken(incomingRefreshToken) {
+            if (!incomingRefreshToken) {
+                throw new ApiError(401, "Unauthorized request")
             }
 
-            async refreshAccessToken(incomingRefreshToken) {
-                if (!incomingRefreshToken) {
-                    throw new ApiError(401, "Unauthorized request")
-                }
-
-                let decodedToken
-                try {
-                    decodedToken = jwt.verify(
-                        incomingRefreshToken,
-                        process.env.JWT_REFRESH_SECRET
-                    )
-                } catch (error) {
-                    throw new ApiError(401, "Invalid or expired refresh token")
-                }
+            let decodedToken
+            try {
+                decodedToken = jwt.verify(
+                    incomingRefreshToken,
+                    process.env.JWT_REFRESH_SECRET
+                )
+            } catch (error) {
+                throw new ApiError(401, "Invalid or expired refresh token")
+            }
 
         const user = await User.findById(decodedToken._id)
         if (!user) {

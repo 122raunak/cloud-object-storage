@@ -10,10 +10,10 @@ import { formatBytes } from '../../utils/formatBytes.js'
 import { formatCurrency } from '../../utils/formatCurrency.js'
 import { formatDate } from '../../utils/formatDate.js'
 import UploadModal from '../../components/modals/UploadModal.jsx'
-const { user, unreadCount } = useAuth()
+
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, unreadCount } = useAuth()
   const [usage, setUsage] = useState(null)
   const [estimate, setEstimate] = useState(null)
   const [recentFiles, setRecentFiles] = useState([])

@@ -8,7 +8,7 @@ function generateIdempotencyKey() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-export default function UploadModal({ onClose, onSuccess }) {
+export default function UploadModal({ onClose, onSuccess, bucketId = null }) {
   const [step, setStep] = useState(STEP.SELECT)
   const [file, setFile] = useState(null)
   const [progress, setProgress] = useState(0)

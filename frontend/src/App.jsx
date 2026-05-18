@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth.js'
 import LoadingSpinner from './components/common/LoadingSpinner.jsx'
 import Layout from './components/Layout/Layout.jsx'
 
+import LandingPage from './pages/Landing/LandingPage.jsx'
 import LoginPage from './pages/Login/LoginPage.jsx'
 import RegisterPage from './pages/Register/RegisterPage.jsx'
 import DashboardPage from './pages/Dashboard/DashboardPage.jsx'
@@ -48,7 +49,7 @@ function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )

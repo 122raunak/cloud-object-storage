@@ -52,38 +52,34 @@ class StorageService {
   }
 
   // ─── Confirm Upload ────────────────────────────────────────────────────────
-  async confirmUpload(userId, objectKey, fileName, contentType, size) {
+  async confirmUpload(userId, objectKey, fileName, contentType, size, bucketId) {
     const exists = await storage.fileExists(objectKey)
     if (!exists) throw new ApiError(400, "File not uploaded or not found")
-
     const stats = await storage.getObjectStats(objectKey)
     if (stats.size !== size) throw new ApiError(400, "File size mismatch")
-
     const safeFileName = sanitizeFileName(fileName)
-
     const file = await File.create({
       userId,
-      fileName: safeFileName,
+      fileName:     safeFileName,
       objectKey,
       size,
-      mimeType: contentType,
-      bucket,
-      isDeleted: false,
+      mimeType:     contentType,
+      bucket:       process.env.MINIO_BUCKET, 
+      isDeleted:    false,
+      userBucketId: bucketId || null,
     })
-
     try {
       await publishEvent("file.uploaded", {
         userId,
         fileId:    file._id.toString(),
-        fileName:  safeFileName,          
+        fileName:  safeFileName,
         size,
-        mimeType:  contentType,           
+        mimeType:  contentType,
         createdAt: file.createdAt,
       })
     } catch (err) {
       logger.error({ err, userId, fileId: file._id }, "Upload event publish failed")
     }
-
     logger.info({ userId, fileId: file._id }, "File uploaded successfully")
     return { fileId: file._id }
   }
@@ -134,30 +130,33 @@ class StorageService {
   }
 
   // ─── List Files ───────────────────────────────────────────────────────────
-  async listFiles(userId, query) {
-    const page  = parseInt(query.page)  || 1
-    const limit = parseInt(query.limit) || 10
-    const skip  = (page - 1) * limit
+ async listFiles(userId, { page, limit, search, mimeType, sortBy, order, includeDeleted, bucketId }) {
+  const parsedPage  = parseInt(page)  || 1
+  const parsedLimit = parseInt(limit) || 10
+  const skip = (parsedPage - 1) * parsedLimit
 
-    const filter = { userId }
-    if (!query.includeDeleted || query.includeDeleted === 'false') {
-      filter.isDeleted = false
-    }
-    if (query.search)   filter.$text    = { $search: query.search }
-    if (query.mimeType) filter.mimeType = query.mimeType
+  const filter = { userId }
 
-    const sort = query.sortBy === "size" ? { size: -1 } : { createdAt: -1 }
+  if (!includeDeleted || includeDeleted === 'false') filter.isDeleted = false
+  if (search)   filter.$text    = { $search: search }
+  if (mimeType) filter.mimeType = { $regex: `^${mimeType}`, $options: 'i' }
+  if (bucketId === 'none') filter.userBucketId = null
+  else if (bucketId) filter.userBucketId = bucketId
 
-    const [files, total] = await Promise.all([
-      File.find(filter).sort(sort).skip(skip).limit(limit),
-      File.countDocuments(filter),
-    ])
+  const sortField = sortBy === 'size' ? 'size' : sortBy === 'fileName' ? 'fileName' : 'createdAt'
+  const sortOrder = order === 'asc' ? 1 : -1
+  const sort = { [sortField]: sortOrder }
 
-    return {
-      data:       files,
-      pagination: { total, page, pages: Math.ceil(total / limit) },
-    }
+  const [files, total] = await Promise.all([
+    File.find(filter).sort(sort).skip(skip).limit(parsedLimit),
+    File.countDocuments(filter),
+  ])
+
+  return {
+    data: files,
+    pagination: { total, page: parsedPage, pages: Math.ceil(total / parsedLimit) },
   }
+}
 
   // ─── Delete File (soft) ───────────────────────────────────────────────────
   async deleteFile(userId, fileId) {

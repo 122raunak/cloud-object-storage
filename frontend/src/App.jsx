@@ -9,6 +9,7 @@ import LoginPage from './pages/Login/LoginPage.jsx'
 import RegisterPage from './pages/Register/RegisterPage.jsx'
 import DashboardPage from './pages/Dashboard/DashboardPage.jsx'
 import FilesPage from './pages/Files/FilesPage.jsx'
+import BucketsPage from './pages/Buckets/BucketsPage.jsx'
 import BillingPage from './pages/Billing/BillingPage.jsx'
 import UsagePage from './pages/Usage/UsagePage.jsx'
 import NotificationsPage from './pages/Notifications/NotificationsPage.jsx'
@@ -41,6 +42,8 @@ function AppRoutes() {
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/files" element={<FilesPage />} />
+          <Route path="/buckets" element={<BucketsPage />} />
+          <Route path="/buckets/:bucketId" element={<FilesPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/usage" element={<UsagePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />

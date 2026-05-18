@@ -54,6 +54,7 @@ export default function UploadModal({ onClose, onSuccess }) {
         fileName: file.name,
         contentType: file.type || 'application/octet-stream',
         size: file.size,
+        bucketId: bucketId || null, 
       })
 
       setStep(STEP.DONE)

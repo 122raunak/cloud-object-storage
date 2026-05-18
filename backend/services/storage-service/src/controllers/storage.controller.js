@@ -44,21 +44,12 @@ const getUploadUrl = asyncHandler(async (req, res) => {
 // CONFIRM UPLOAD
 const confirmUpload = asyncHandler(async (req, res) => {
   const userId = validateUser(req)
-  const { objectKey, fileName, contentType, size } = req.body
-
+  const { objectKey, fileName, contentType, size, bucketId } = req.body
   if (!objectKey) throw new ApiError(400, "objectKey is required")
-
   const result = await storageService.confirmUpload(
-    userId,
-    objectKey,
-    fileName,
-    contentType,
-    size
+    userId, objectKey, fileName, contentType, size, bucketId
   )
-
-  return res.status(200).json(
-    new ApiResponse(200, result, "Upload confirmed")
-  )
+  return res.status(200).json(new ApiResponse(200, result, "Upload confirmed"))
 })
 
 

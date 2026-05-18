@@ -16,6 +16,11 @@ const IconFiles = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
   </svg>
 )
+const IconBucket = () => (
+  <svg className="sidebar-link-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+  </svg>
+)
 const IconBilling = () => (
   <svg className="sidebar-link-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -81,6 +86,11 @@ export default function Sidebar() {
         <NavLink to="/files" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
           <IconFiles />
           Files
+        </NavLink>
+
+        <NavLink to="/buckets" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
+          <IconBucket />
+          Buckets
         </NavLink>
 
         <div className="sidebar-section-label">Account</div>

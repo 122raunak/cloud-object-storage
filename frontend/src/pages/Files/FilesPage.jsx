@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useParams } from 'react-router-dom'
 import { useFiles } from '../../hooks/useFiles.js'
 import { storageApi } from '../../api/storage.api.js'
 import LoadingSpinner from '../../components/common/LoadingSpinner.jsx'
@@ -40,6 +41,7 @@ export default function FilesPage() {
   const [shareModal, setShareModal] = useState(null)
   const [shareLoading, setShareLoading] = useState({})
   const [copiedId, setCopiedId] = useState(null)
+  const { bucketId } = useParams()
 
   const load = useCallback((p = page) => {
     fetchFiles({
@@ -49,8 +51,9 @@ export default function FilesPage() {
       mimeType: mimeType || undefined,
       sortBy,
       includeDeleted: showDeleted ? 'true' : undefined,
+      bucketId: bucketId || undefined,
     })
-  }, [page, search, mimeType, sortBy, fetchFiles, showDeleted])
+  }, [page, search, mimeType, sortBy, fetchFiles, showDeleted, bucketId])
 
   useEffect(() => { load(1); setPage(1); setSelected(new Set()) }, [search, mimeType, sortBy, showDeleted])
   useEffect(() => { load(page) }, [page])
@@ -169,7 +172,9 @@ export default function FilesPage() {
     <div>
       <div className="page-header">
         <div className="page-header-left">
-          <div className="page-title">File Manager</div>
+          <div className="page-title">
+            {bucketId ? `Bucket: ${bucketId}` : 'File Manager'}
+          </div>
           <div className="page-subtitle">{pagination.total} files total</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

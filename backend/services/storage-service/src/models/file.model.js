@@ -48,7 +48,13 @@ const fileSchema = new mongoose.Schema({
   downloadCount: { 
     type: Number, 
     default: 0 
-  }
+  },
+  userBucketId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Bucket',
+    default: null,
+    index: true
+  },
 }, { timestamps: true })
 
 fileSchema.index({ userId: 1, isDeleted: 1 })

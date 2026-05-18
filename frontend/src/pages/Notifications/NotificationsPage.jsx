@@ -7,6 +7,7 @@ import ErrorMessage from '../../components/common/ErrorMessage.jsx'
 import Badge from '../../components/common/Badge.jsx'
 import { formatDateTime } from '../../utils/formatDate.js'
 
+
 const TYPE_OPTIONS = [
   { label: 'All Types', value: '' },
   { label: 'Invoice', value: 'invoice_generated' },
@@ -34,7 +35,7 @@ const TYPE_VARIANT = {
 }
 
 export default function NotificationsPage() {
-  const { user, fetchUnreadCount } = useAuth()
+  const { user, fetchUnreadCount , unreadCount } = useAuth()
   const { notifications, loading, error, pagination, fetchNotifications } = useNotifications(user?._id)
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
@@ -70,8 +71,6 @@ export default function NotificationsPage() {
       setMarkingAll(false)
     }
   }
-
-  const unreadCount = localNotifs.filter(n => !n.read).length
   const totalPages = Math.ceil(pagination.total / 20) || 1
 
   const getStatusColor = (s) => {
@@ -85,7 +84,7 @@ export default function NotificationsPage() {
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">Notifications</div>
-          <div className="page-subtitle">{pagination.total} total notifications</div>
+          {loading ? '...' : `${pagination.total} total · ${unreadCount} unread`}
         </div>
         {unreadCount > 0 && (
           <button

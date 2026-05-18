@@ -85,7 +85,7 @@ export default function NotificationsPage() {
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">Notifications</div>
-          <div className="page-subtitle">{pagination.total} total · {unreadCount} unread</div>
+          <div className="page-subtitle">{pagination.total} total notifications</div>
         </div>
         {unreadCount > 0 && (
           <button

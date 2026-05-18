@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useNotifications } from '../../hooks/useNotifications.js'
+import { notificationsApi } from '../../api/notifications.api.js'
 import LoadingSpinner from '../../components/common/LoadingSpinner.jsx'
 import ErrorMessage from '../../components/common/ErrorMessage.jsx'
 import Badge from '../../components/common/Badge.jsx'
@@ -33,21 +34,49 @@ const TYPE_VARIANT = {
 }
 
 export default function NotificationsPage() {
-  const { user } = useAuth()
+  const { user, fetchUnreadCount } = useAuth()
   const { notifications, loading, error, pagination, fetchNotifications } = useNotifications(user?._id)
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
+  const [localNotifs, setLocalNotifs] = useState([])
+  const [markingAll, setMarkingAll] = useState(false)
 
   useEffect(() => {
     fetchNotifications({ page, limit: 20, type: type || undefined, status: status || undefined })
   }, [page, type, status])
 
+  useEffect(() => {
+    setLocalNotifs(notifications)
+  }, [notifications])
+
+  const handleMarkRead = async (notifId) => {
+    try {
+      await notificationsApi.markRead(user._id, notifId)
+      setLocalNotifs(prev => prev.map(n =>
+        (n._id || n.id) === notifId ? { ...n, read: true } : n
+      ))
+      fetchUnreadCount(user._id)
+    } catch { }
+  }
+
+  const handleMarkAllRead = async () => {
+    setMarkingAll(true)
+    try {
+      await notificationsApi.markAllRead(user._id)
+      setLocalNotifs(prev => prev.map(n => ({ ...n, read: true })))
+      fetchUnreadCount(user._id)
+    } catch { } finally {
+      setMarkingAll(false)
+    }
+  }
+
+  const unreadCount = localNotifs.filter(n => !n.read).length
   const totalPages = Math.ceil(pagination.total / 20) || 1
 
-  const getStatusColor = (status) => {
-    if (status === 'sent') return 'success'
-    if (status === 'failed') return 'danger'
+  const getStatusColor = (s) => {
+    if (s === 'sent') return 'success'
+    if (s === 'failed') return 'danger'
     return 'warning'
   }
 
@@ -56,8 +85,17 @@ export default function NotificationsPage() {
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">Notifications</div>
-          <div className="page-subtitle">{pagination.total} total notifications</div>
+          <div className="page-subtitle">{pagination.total} total · {unreadCount} unread</div>
         </div>
+        {unreadCount > 0 && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleMarkAllRead}
+            disabled={markingAll}
+          >
+            {markingAll ? '...' : `✓ Mark all ${unreadCount} as read`}
+          </button>
+        )}
       </div>
 
       <div className="toolbar">
@@ -73,7 +111,7 @@ export default function NotificationsPage() {
         <LoadingSpinner />
       ) : error ? (
         <ErrorMessage message={error} />
-      ) : notifications.length === 0 ? (
+      ) : localNotifs.length === 0 ? (
         <div className="empty-state">
           <svg className="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -83,16 +121,38 @@ export default function NotificationsPage() {
         </div>
       ) : (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          {notifications.map((n) => {
+          {localNotifs.map((n) => {
             const id = n._id || n.id
-            const isPending = n.status === 'pending'
+            const isUnread = !n.read
             return (
-              <div key={id} className={`notif-item${isPending ? ' unread' : ''}`}
-                style={{ borderBottom: '1px solid var(--border)', padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <div style={{ marginTop: 4, width: 8, height: 8, borderRadius: '50%', background: isPending ? 'var(--accent)' : 'transparent', flexShrink: 0 }} />
+              <div
+                key={id}
+                onClick={() => isUnread && handleMarkRead(id)}
+                style={{
+                  borderBottom: '1px solid var(--border)',
+                  padding: '14px 16px',
+                  display: 'flex', gap: 10, alignItems: 'flex-start',
+                  background: isUnread ? 'var(--bg-elevated)' : 'transparent',
+                  cursor: isUnread ? 'pointer' : 'default',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <div style={{
+                  marginTop: 6, width: 8, height: 8, borderRadius: '50%',
+                  background: isUnread ? 'var(--accent)' : 'transparent',
+                  border: isUnread ? 'none' : '1px solid var(--border)',
+                  flexShrink: 0
+                }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 4 }}>
-                    {n.subject || n.title || 'Notification'}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontWeight: isUnread ? 600 : 400, fontSize: 14, color: isUnread ? 'var(--text)' : 'var(--text-muted)' }}>
+                      {n.subject || n.title || 'Notification'}
+                    </div>
+                    {isUnread && (
+                      <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: 20, border: '1px solid var(--accent)' }}>
+                        NEW
+                      </span>
+                    )}
                   </div>
                   {n.body && (
                     <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>{n.body}</div>
@@ -107,6 +167,11 @@ export default function NotificationsPage() {
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                       {formatDateTime(n.createdAt || n.sentAt)}
                     </span>
+                    {isUnread && (
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        Click to mark as read
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

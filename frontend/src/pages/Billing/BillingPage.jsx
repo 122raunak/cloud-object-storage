@@ -13,6 +13,60 @@ export default function BillingPage() {
   const [estimate, setEstimate] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [payingId, setPayingId] = useState(null)
+
+  const loadRazorpay = () => new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true)
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+
+  const handlePayNow = async (invoice) => {
+    setPayingId(invoice.id)
+    try {
+      const loaded = await loadRazorpay()
+      if (!loaded) { alert('Failed to load payment gateway'); return }
+
+      const res = await billingApi.createPaymentOrder(user._id, invoice.id)
+      const { order } = res.data.data || res.data
+
+      const options = {
+        key: 'rzp_test_SqqZnAk2na1UkE',
+        amount: order.amount,
+        currency: order.currency,
+        name: 'CloudStore',
+        description: `Invoice #${String(invoice.id).slice(-8).toUpperCase()}`,
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            await billingApi.verifyPayment(user._id, invoice.id, {
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+            })
+            setInvoices(prev => prev.map(inv =>
+              inv.id === invoice.id ? { ...inv, status: 'paid' } : inv
+            ))
+            alert('Payment successful! Invoice marked as paid.')
+          } catch (err) {
+            alert('Payment verification failed: ' + (err.response?.data?.message || err.message))
+          }
+        },
+        prefill: { email: user?.email || '' },
+        theme: { color: '#2563eb' },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.open()
+    } catch (err) {
+      alert('Failed to create order: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setPayingId(null)
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -25,11 +79,9 @@ export default function BillingPage() {
           billingApi.getInvoices(user._id),
           billingApi.getCurrentEstimate(user._id),
         ])
-
         if (plansRes.status === 'fulfilled') {
           const d = plansRes.value.data.data || plansRes.value.data
           const allPlans = Array.isArray(d) ? d : d.plans || []
-          // Deduplicate by name — keep first occurrence
           const seen = new Set()
           setPlans(allPlans.filter(p => {
             if (seen.has(p.name)) return false
@@ -37,12 +89,10 @@ export default function BillingPage() {
             return true
           }))
         }
-
         if (invoicesRes.status === 'fulfilled') {
           const d = invoicesRes.value.data.data || invoicesRes.value.data
           setInvoices(Array.isArray(d) ? d : d.invoices || [])
         }
-
         if (estimateRes.status === 'fulfilled') {
           setEstimate(estimateRes.value.data.data || estimateRes.value.data)
         }
@@ -157,6 +207,7 @@ export default function BillingPage() {
                   <th>Amount</th>
                   <th>Status</th>
                   <th>Date</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,6 +243,22 @@ export default function BillingPage() {
                       </td>
                       <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                         {formatDate(inv.created_at || inv.createdAt || inv.issued_at)}
+                      </td>
+                      <td>
+                        {inv.status === 'issued' && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            disabled={payingId === id}
+                            onClick={() => handlePayNow(inv)}
+                          >
+                            {payingId === id ? '...' : 'Pay Now'}
+                          </button>
+                        )}
+                        {inv.status === 'paid' && (
+                          <span style={{ fontSize: 12, color: 'var(--color-text-success)', fontWeight: 600 }}>
+                            ✓ Paid
+                          </span>
+                        )}
                       </td>
                     </tr>
                   )

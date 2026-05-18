@@ -1,6 +1,9 @@
 const { Router } = require("express")
 const { verifyToken, requireAdmin, requireOwnerOrAdmin } = require("../middlewares/auth.middleware")
 const { defaultLimiter, generateInvoiceLimiter }         = require("../middlewares/rateLimiter.middleware")
+const { createOrder, verifyPayment } = require("../controllers/payment.controller")
+
+
 const {
   validateQuery,
   validateBody,
@@ -14,8 +17,7 @@ const {
   listPlans,
   assignPlan,
   listInvoices,
-  getInvoice,
-  getCurrentEstimate,
+  getInvoice,getCurrentEstimate,
   generateInvoice,
 } = require("../controllers/billing.controller")
 
@@ -28,45 +30,20 @@ router.get("/plans", defaultLimiter, listPlans)
 router.use(verifyToken)
 
 // Plans — admin only
-router.put(
-  "/plans/:userId",
-  requireAdmin,
-  defaultLimiter,
-  validateBody(assignPlanBodySchema),
-  assignPlan
-)
+router.put("/plans/:userId",requireAdmin,defaultLimiter,validateBody(assignPlanBodySchema),assignPlan)
 
 // Invoices — owner or admin
-router.get(
-  "/invoices/:userId",
-  requireOwnerOrAdmin("userId"),
-  defaultLimiter,
-  validateQuery(invoiceListQuerySchema),
-  listInvoices
-)
+router.get("/invoices/:userId",requireOwnerOrAdmin("userId"),defaultLimiter,validateQuery(invoiceListQuerySchema),listInvoices)
 
-router.get(
-  "/invoices/:userId/:invoiceId",
-  requireOwnerOrAdmin("userId"),
-  defaultLimiter,
-  validateParams(invoiceParamsSchema),
-  getInvoice
-)
+router.get("/invoices/:userId/:invoiceId",requireOwnerOrAdmin("userId"),defaultLimiter,validateParams(invoiceParamsSchema),getInvoice)
 
-router.get(
-  "/current/:userId",
-  requireOwnerOrAdmin("userId"),
-  defaultLimiter,
-  getCurrentEstimate
-)
+router.get("/current/:userId",requireOwnerOrAdmin("userId"),defaultLimiter,getCurrentEstimate)
 
 // Manual invoice generation — admin only
-router.post(
-  "/generate/:userId",
-  requireAdmin,
-  generateInvoiceLimiter,
-  validateBody(generateInvoiceBodySchema),
-  generateInvoice
-)
+router.post("/generate/:userId",requireAdmin,generateInvoiceLimiter,validateBody(generateInvoiceBodySchema),generateInvoice)
+
+// Payment routes
+router.post("/pay/order/:userId/:invoiceId", requireOwnerOrAdmin("userId"), defaultLimiter, createOrder)
+router.post("/pay/verify/:userId/:invoiceId", requireOwnerOrAdmin("userId"), defaultLimiter, verifyPayment)
 
 module.exports = router

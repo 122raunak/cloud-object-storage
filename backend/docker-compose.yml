@@ -202,9 +202,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT}
       METERING_SERVICE_URL: ${METERING_SERVICE_URL}
-    volumes:
-      - ./services/billing-service:/app
-      - /app/node_modules
     networks:
       - cloud-network
 

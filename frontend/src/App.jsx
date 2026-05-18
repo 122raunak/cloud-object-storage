@@ -1,3 +1,4 @@
+// v2 - bucket management
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { useAuth } from './hooks/useAuth.js'

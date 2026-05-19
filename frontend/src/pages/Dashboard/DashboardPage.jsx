@@ -20,15 +20,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const navigate = useNavigate()
+  const [folderCount, setFolderCount] = useState(0)
 
   useEffect(() => {
     async function load() {
       setLoading(true)
       try {
-        const [uRes, eRes, fRes] = await Promise.allSettled([
+        const [uRes, eRes, fRes , foldersRes] = await Promise.allSettled([
           meteringApi.getUsage(user._id),
           billingApi.getEstimate(user._id),
           storageApi.getFiles({ limit: 5, sortBy: 'createdAt:desc', _t: Date.now() }),
+          storageApi.listBuckets(),
         ])
         if (uRes.status === 'fulfilled') {
           setUsage(uRes.value.data.data || uRes.value.data)
@@ -39,6 +41,10 @@ export default function DashboardPage() {
         if (fRes.status === 'fulfilled') {
           const outer = fRes.value.data.data
           setRecentFiles(Array.isArray(outer?.data) ? outer.data : [])
+        }
+        if (foldersRes.status === 'fulfilled') {
+          const folders = foldersRes.value.data.data || foldersRes.value.data || []
+          setFolderCount(Array.isArray(folders) ? folders.length : 0)
         }
       } finally {
         setLoading(false)
@@ -67,7 +73,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div className="grid-4 mb-8">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 'var(--space-4)' }} className="mb-8">
         <div className="stat-card">
           <div className="stat-label">Storage Used</div>
           <div className="stat-value">{formatBytes(usedBytes)}</div>
@@ -86,6 +92,11 @@ export default function DashboardPage() {
           <div className="stat-sub">
             {unreadCount > 0 ? `${unreadCount} unread` : 'View all notifications →'}
           </div>
+        </div>
+        <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/buckets')}>
+          <div className="stat-label">Folders</div>
+          <div className="stat-value">{folderCount}</div>
+          <div className="stat-sub">Manage folders →</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">API Calls</div>

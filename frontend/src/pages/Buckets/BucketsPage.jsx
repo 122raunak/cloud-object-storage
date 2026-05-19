@@ -29,7 +29,7 @@ export default function BucketsPage() {
       const d = res.data.data || res.data
       setBuckets(Array.isArray(d) ? d : [])
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load buckets')
+      setError(err.response?.data?.message || 'Failed to load folders')
     } finally {
       setLoading(false)
     }
@@ -59,24 +59,24 @@ export default function BucketsPage() {
       setNewName('')
       setNewDesc('')
       setShowCreate(false)
-      showMsg('Bucket created successfully')
+      showMsg('Folder created successfully')
       load()
     } catch (err) {
-      setNameError(err.response?.data?.message || 'Failed to create bucket')
+      setNameError(err.response?.data?.message || 'Failed to create folder')
     } finally {
       setCreating(false)
     }
   }
 
   const handleDelete = async (bucket) => {
-    if (!window.confirm(`Delete bucket "${bucket.name}"? It must be empty.`)) return
+    if (!window.confirm(`Delete folder "${bucket.name}"? It must be empty.`)) return
     setDeletingId(bucket._id)
     try {
       await storageApi.deleteBucket(bucket._id)
-      showMsg('Bucket deleted')
+      showMsg('Folder deleted')
       load()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete bucket')
+      setError(err.response?.data?.message || 'Failed to delete folder')
     } finally {
       setDeletingId(null)
     }
@@ -86,13 +86,22 @@ export default function BucketsPage() {
     <div>
       <div className="page-header">
         <div className="page-header-left">
-          <div className="page-title">Buckets</div>
-          <div className="page-subtitle">{buckets.length} bucket{buckets.length !== 1 ? 's' : ''}</div>
+            <div className="page-title">Folders</div>
+            <div className="page-subtitle">
+            <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => navigate('/files')}
+                style={{ marginRight: 8 }}
+            >
+                ← Files
+            </button>
+            {buckets.length} folder{buckets.length !== 1 ? 's' : ''}
+            </div>
         </div>
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          + Create Bucket
+            + Create Folder
         </button>
-      </div>
+        </div>
 
       {error && <ErrorMessage message={error} />}
       {msg && <div className="success-msg" style={{ marginBottom: 16 }}>{msg}</div>}
@@ -106,7 +115,7 @@ export default function BucketsPage() {
           <div className="card" style={{ width: 440, padding: 24 }}>
             <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Create Bucket</div>
             <div className="form-group">
-              <label className="form-label">Bucket Name *</label>
+              <label className="form-label">Folder Name *</label>
               <input
                 className="form-input"
                 placeholder="e.g. my-photos"
@@ -146,8 +155,8 @@ export default function BucketsPage() {
           <svg className="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
-          <div className="empty-state-title">No buckets yet</div>
-          <div className="empty-state-desc">Create a bucket to organize your files</div>
+          <div className="empty-state-title">No folders yet</div>
+          <div className="empty-state-desc">Create a folder to organize your files</div>
           <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setShowCreate(true)}>
             Create your first bucket
           </button>
@@ -157,7 +166,7 @@ export default function BucketsPage() {
           <table>
             <thead>
               <tr>
-                <th>Bucket Name</th>
+                <th>Folder Name</th>
                 <th>Description</th>
                 <th>Files</th>
                 <th>Size</th>

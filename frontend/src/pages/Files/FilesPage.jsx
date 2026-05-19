@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
 import { useFiles } from '../../hooks/useFiles.js'
 import { storageApi } from '../../api/storage.api.js'
 import LoadingSpinner from '../../components/common/LoadingSpinner.jsx'
@@ -8,6 +7,7 @@ import Badge from '../../components/common/Badge.jsx'
 import UploadModal from '../../components/modals/UploadModal.jsx'
 import { formatBytes } from '../../utils/formatBytes.js'
 import { formatDate } from '../../utils/formatDate.js'
+import { useNavigate } from 'react-router-dom'
 
 const MIME_OPTIONS = [
   { label: 'All Types', value: '' },
@@ -41,7 +41,15 @@ export default function FilesPage() {
   const [shareModal, setShareModal] = useState(null)
   const [shareLoading, setShareLoading] = useState({})
   const [copiedId, setCopiedId] = useState(null)
-  const { bucketId } = useParams()
+  const [buckets, setBuckets] = useState([])
+  const [selectedBucket, setSelectedBucket] = useState('')
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    storageApi.listBuckets()
+      .then(res => setBuckets(res.data.data || res.data || []))
+      .catch(() => {})
+  }, [])
 
   const load = useCallback((p = page) => {
     fetchFiles({
@@ -51,11 +59,11 @@ export default function FilesPage() {
       mimeType: mimeType || undefined,
       sortBy,
       includeDeleted: showDeleted ? 'true' : undefined,
-      bucketId: bucketId || undefined,
+      bucketId: selectedBucket || undefined,
     })
-  }, [page, search, mimeType, sortBy, fetchFiles, showDeleted, bucketId])
+  }, [page, search, mimeType, sortBy, fetchFiles, showDeleted, selectedBucket])
 
-  useEffect(() => { load(1); setPage(1); setSelected(new Set()) }, [search, mimeType, sortBy, showDeleted])
+  useEffect(() => { load(1); setPage(1); setSelected(new Set()) }, [search, mimeType, sortBy, showDeleted, selectedBucket])
   useEffect(() => { load(page) }, [page])
 
   const handleSearch = (e) => setSearch(e.target.value)
@@ -97,7 +105,6 @@ export default function FilesPage() {
     }
   }
 
-  // ── Bulk select ─────────────────────────────────────────────────────────────
   const activeFiles = files.filter(f => !(f.deleted || f.isDeleted))
 
   const toggleSelect = (id) => {
@@ -131,7 +138,6 @@ export default function FilesPage() {
     }
   }
 
-  // ── Share ───────────────────────────────────────────────────────────────────
   const handleShare = async (fileId, name) => {
     setShareLoading(a => ({ ...a, [fileId]: true }))
     try {
@@ -168,16 +174,36 @@ export default function FilesPage() {
     return <Badge variant="muted">{ct.split('/')[1]?.slice(0, 8) || 'File'}</Badge>
   }
 
+  const selectedBucketName = buckets.find(b => b._id === selectedBucket)?.name
+
   return (
     <div>
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">
-            {bucketId ? `Bucket: ${bucketId}` : 'File Manager'}
+            {selectedBucketName ? `📦 ${selectedBucketName}` : 'File Manager'}
           </div>
           <div className="page-subtitle">{pagination.total} files total</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+         <select
+            className="form-select"
+            style={{ width: 160, padding: '4px 10px', fontSize: 12, height: 'auto' }}
+            value={selectedBucket}
+            onChange={(e) => setSelectedBucket(e.target.value)}
+          >
+            <option value="">📁 All Files</option>
+            {buckets.map(b => (
+              <option key={b._id} value={b._id}>📦 {b.name}</option>
+            ))}
+          </select>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => navigate('/buckets')}
+              title="Manage Buckets"
+            >
+              📁 Folders
+          </button>
           {selected.size > 0 && (
             <button
               className="btn btn-danger btn-sm"
@@ -350,7 +376,6 @@ export default function FilesPage() {
         </div>
       )}
 
-      {/* Share Modal */}
       {shareModal && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -397,6 +422,7 @@ export default function FilesPage() {
         <UploadModal
           onClose={() => setShowUpload(false)}
           onSuccess={() => { setShowUpload(false); load(page) }}
+          bucketId={selectedBucket || null}
         />
       )}
     </div>

@@ -76,7 +76,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {/* <div className="sidebar-section-label">Main</div> */}
+        <div className="sidebar-section-label">Main</div>
 
         <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
           <IconGrid />
@@ -93,7 +93,7 @@ export default function Sidebar() {
           Buckets
         </NavLink>
 
-        {/* <div className="sidebar-section-label">Account</div> */}
+        <div className="sidebar-section-label">Account</div>
 
         <NavLink to="/billing" className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}>
           <IconBilling />

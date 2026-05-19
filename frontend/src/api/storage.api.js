@@ -22,4 +22,5 @@ listBuckets:   ()               => api.get('/api/storage/buckets'),
 createBucket:  (data)           => api.post('/api/storage/buckets', data),
 deleteBucket:  (bucketId)       => api.delete(`/api/storage/buckets/${bucketId}`),
 updateBucket:  (bucketId, data) => api.patch(`/api/storage/buckets/${bucketId}`, data),
+moveFile: (fileId, userBucketId) => api.patch(`/api/storage/move/${fileId}`, { userBucketId }),
 }

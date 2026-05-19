@@ -43,6 +43,8 @@ export default function FilesPage() {
   const [copiedId, setCopiedId] = useState(null)
   const [buckets, setBuckets] = useState([])
   const [selectedBucket, setSelectedBucket] = useState('')
+  const [moveModal, setMoveModal] = useState(null)
+  const [moving, setMoving] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -157,7 +159,22 @@ export default function FilesPage() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
+  const handleMove = async (targetBucketId) => {
+    if (!moveModal) return
+    setMoving(true)
+    try {
+      await storageApi.moveFile(moveModal.id, targetBucketId === 'none' ? null : targetBucketId)
+      setMoveModal(null)
+      load(page)
+    } catch (err) {
+      setLocalError(err.response?.data?.message || 'Move failed')
+    } finally {
+      setMoving(false)
+    }
+  }
+
   const totalPages = Math.ceil(pagination.total / 20) || 1
+  const selectedBucketName = buckets.find(b => b._id === selectedBucket)?.name
 
   const getStatusBadge = (file) => {
     if (file.deleted || file.isDeleted) return <Badge variant="danger">Deleted</Badge>
@@ -174,8 +191,6 @@ export default function FilesPage() {
     return <Badge variant="muted">{ct.split('/')[1]?.slice(0, 8) || 'File'}</Badge>
   }
 
-  const selectedBucketName = buckets.find(b => b._id === selectedBucket)?.name
-
   return (
     <div>
       <div className="page-header">
@@ -186,7 +201,7 @@ export default function FilesPage() {
           <div className="page-subtitle">{pagination.total} files total</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-         <select
+          <select
             className="form-select"
             style={{ width: 160, padding: '4px 10px', fontSize: 12, height: 'auto' }}
             value={selectedBucket}
@@ -197,12 +212,11 @@ export default function FilesPage() {
               <option key={b._id} value={b._id}>📦 {b.name}</option>
             ))}
           </select>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => navigate('/buckets')}
-              title="Manage Buckets"
-            >
-              📁 Folders
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => navigate('/buckets')}
+          >
+            📁 Folders
           </button>
           {selected.size > 0 && (
             <button
@@ -286,6 +300,7 @@ export default function FilesPage() {
                 <th>Type</th>
                 <th>Status</th>
                 <th>Uploaded</th>
+                <th>Folder</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -317,6 +332,9 @@ export default function FilesPage() {
                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                       {formatDate(file.createdAt || file.uploadedAt)}
                     </td>
+                    <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      {buckets.find(b => b._id === (file.userBucketId?._id || file.userBucketId))?.name || '—'}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {!isDeleted && (
@@ -334,6 +352,12 @@ export default function FilesPage() {
                               disabled={shareLoading[id]}
                             >
                               {shareLoading[id] ? '...' : '🔗 Share'}
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => setMoveModal({ id, name })}
+                            >
+                              📁 Move
                             </button>
                           </>
                         )}
@@ -376,6 +400,42 @@ export default function FilesPage() {
         </div>
       )}
 
+      {/* Move Modal */}
+      {moveModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="card" style={{ width: 400, padding: 24 }}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>Move File</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+              {moveModal.name}
+            </div>
+            <div className="form-group">
+              <label className="form-label">Select Folder</label>
+              <select
+                className="form-select"
+                onChange={(e) => handleMove(e.target.value)}
+                defaultValue=""
+                disabled={moving}
+              >
+                <option value="" disabled>Choose a folder...</option>
+                <option value="none">📁 No folder (root)</option>
+                {buckets.map(b => (
+                  <option key={b._id} value={b._id}>📦 {b.name}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <button className="btn btn-secondary" onClick={() => setMoveModal(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
       {shareModal && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',

@@ -2,6 +2,7 @@ const ApiResponse = require("../utils/ApiResponse")
 const ApiError = require("../utils/ApiError")
 const storageService = require("../services/storage.service")
 const asyncHandler = require("../utils/asyncHandler")
+const File = require("../models/file.model")
 
 // HELPERS
 const validateUser = (req) => {
@@ -144,6 +145,20 @@ const getShareUrl = asyncHandler(async (req, res) => {
   )
 })
 
+//Move file to folder
+const moveFile = asyncHandler(async (req, res) => {
+  const userId = validateUser(req)
+  const { fileId } = req.params
+  const { userBucketId } = req.body
+  const file = await File.findOneAndUpdate(
+    { _id: fileId, userId },
+    { userBucketId: userBucketId || null },
+    { new: true }
+  )
+  if (!file) throw new ApiError(404, "File not found")
+  return res.status(200).json(new ApiResponse(200, file, "File moved successfully"))
+})
+
 module.exports = {
   getUploadUrl,
   confirmUpload,
@@ -151,5 +166,6 @@ module.exports = {
   listFiles,
   deleteFile,
   restoreFile,
-  getShareUrl
+  getShareUrl,
+  moveFile
 }

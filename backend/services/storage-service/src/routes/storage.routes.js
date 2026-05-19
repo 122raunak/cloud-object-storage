@@ -25,5 +25,6 @@ router.post("/buckets", bucketController.createBucket)
 router.get("/buckets/:bucketId", bucketController.getBucket)
 router.patch("/buckets/:bucketId", bucketController.updateBucket)
 router.delete("/buckets/:bucketId", bucketController.deleteBucket)
+router.patch("/move/:fileId", controller.moveFile)
 
 module.exports = router

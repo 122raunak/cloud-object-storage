@@ -114,6 +114,14 @@ This overrides the production URL and is automatically gitignored.
 
 ---
 
+## Folder Management Flow
+1. Create folder via `/buckets` page
+2. Upload files with folder selected in dropdown
+3. Move existing files to folders via Move button
+4. Filter files by folder using the folder selector
+
+---
+
 ## Features
 
 ### User Features
@@ -122,6 +130,11 @@ This overrides the production URL and is automatically gitignored.
 - Download, delete, and restore files (soft delete with trash)
 - **Bulk delete** — select multiple files with checkboxes
 - **File sharing** — shareable links with 1 hour expiry
+- Upload files up to **500MB**
+- **Folder management** — create folders, move files between folders
+- **Payment gateway** — pay invoices with Razorpay
+- **Landing page** — product marketing page at `/`
+- **Read/unread notifications** — mark individual or all notifications as read
 - Storage usage progress bar with accurate percentage
 - **Analytics charts** — area chart, bar charts for storage/transfer/API usage
 - Notification counter with 30-second polling

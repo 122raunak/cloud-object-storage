@@ -190,7 +190,10 @@ npm run dev
 
 ### User Features
 - Register and login with secure JWT authentication
-- Upload files (PDF, images, videos, documents) up to 10MB
+- Upload files (PDF, images, videos, documents) up to **500MB**
+- **Folder management** — organize files into folders, move files between folders
+- **Razorpay payment gateway** — pay invoices online in test mode
+- **Landing page** — product marketing page before login
 - Download, delete, and restore files (soft delete with trash)
 - **Bulk delete** — select multiple files and delete at once
 - **File sharing** — generate shareable links with 1 hour expiry

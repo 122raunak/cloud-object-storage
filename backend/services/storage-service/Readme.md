@@ -16,6 +16,8 @@ Handles file upload, download, sharing, and management using presigned URLs for 
 - Idempotent uploads via idempotency key header
 - Events published to two BullMQ queues on every file operation
 - Environment-aware storage — uses MinIO locally, AWS SDK + Supabase Storage in production
+- **Folder management** — create folders, organize files, move files between folders
+- **Move files** — reassign files to different folders without re-uploading
 
 ---
 
@@ -69,6 +71,10 @@ Every file operation publishes to both queues simultaneously:
 | GET | `/api/storage/share/:fileId` | Generate shareable URL with expiry |
 | DELETE | `/api/storage/:fileId` | Soft delete file (moves to trash) |
 | PATCH | `/api/storage/restore/:fileId` | Restore file from trash |
+| GET | `/api/storage/buckets` | List user folders |
+| POST | `/api/storage/buckets` | Create a new folder |
+| DELETE | `/api/storage/buckets/:bucketId` | Delete a folder |
+| PATCH | `/api/storage/move/:fileId` | Move file to a different folder |
 
 ---
 

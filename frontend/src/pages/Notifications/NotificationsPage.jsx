@@ -7,7 +7,6 @@ import ErrorMessage from '../../components/common/ErrorMessage.jsx'
 import Badge from '../../components/common/Badge.jsx'
 import { formatDateTime } from '../../utils/formatDate.js'
 
-
 const TYPE_OPTIONS = [
   { label: 'All Types', value: '' },
   { label: 'Invoice', value: 'invoice_generated' },
@@ -35,7 +34,7 @@ const TYPE_VARIANT = {
 }
 
 export default function NotificationsPage() {
-  const { user, fetchUnreadCount , unreadCount } = useAuth()
+  const { user, fetchUnreadCount, unreadCount } = useAuth()
   const { notifications, loading, error, pagination, fetchNotifications } = useNotifications(user?._id)
   const [type, setType] = useState('')
   const [status, setStatus] = useState('')
@@ -57,7 +56,7 @@ export default function NotificationsPage() {
       setLocalNotifs(prev => prev.map(n =>
         (n._id || n.id) === notifId ? { ...n, read: true } : n
       ))
-      fetchUnreadCount(user._id)
+      await fetchUnreadCount(user._id)
     } catch { }
   }
 
@@ -66,11 +65,13 @@ export default function NotificationsPage() {
     try {
       await notificationsApi.markAllRead(user._id)
       setLocalNotifs(prev => prev.map(n => ({ ...n, read: true })))
-      fetchUnreadCount(user._id)
+      await fetchUnreadCount(user._id)
     } catch { } finally {
       setMarkingAll(false)
     }
   }
+
+  const localUnreadCount = localNotifs.filter(n => !n.read).length
   const totalPages = Math.ceil(pagination.total / 20) || 1
 
   const getStatusColor = (s) => {
@@ -84,15 +85,17 @@ export default function NotificationsPage() {
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">Notifications</div>
-          {loading ? '...' : `${pagination.total} total · ${unreadCount} unread`}
+          <div className="page-subtitle">
+            {loading ? '...' : `${pagination.total} total · ${unreadCount} unread`}
+          </div>
         </div>
-        {unreadCount > 0 && (
+        {localUnreadCount > 0 && (
           <button
             className="btn btn-secondary btn-sm"
             onClick={handleMarkAllRead}
             disabled={markingAll}
           >
-            {markingAll ? '...' : `✓ Mark all ${unreadCount} as read`}
+            {markingAll ? '...' : `✓ Mark all as read`}
           </button>
         )}
       </div>

@@ -14,7 +14,9 @@ Handles pricing tiers, usage-based charge calculation, and monthly invoice gener
 - Retry logic on all metering HTTP calls (3 retries with exponential backoff)
 - Invoice.generated event published to BullMQ on creation
 - Admin can manually generate invoices for any user for past months
-
+- **Razorpay payment gateway** — users can pay invoices online (test mode)
+- Payment verification with HMAC signature validation
+- Invoice status automatically updated to `paid` after successful payment
 ---
 
 ## Pricing Tiers
@@ -76,6 +78,8 @@ Notification Service sends invoice email
 | GET | `/api/billing/invoices/:userId` | Owner or Admin | List invoices (paginated) |
 | GET | `/api/billing/invoices/:userId/:invoiceId` | Owner or Admin | Get single invoice |
 | POST | `/api/billing/generate/:userId` | Admin | Manually generate invoice (past months only) |
+| POST | `/api/billing/pay/order/:userId/:invoiceId` | Create Razorpay payment order |
+| POST | `/api/billing/pay/verify/:userId/:invoiceId` | Verify payment and mark invoice paid |
 
 ---
 

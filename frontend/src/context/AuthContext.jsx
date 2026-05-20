@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!user?._id) return
     fetchUnreadCount(user._id)
-    const interval = setInterval(() => fetchUnreadCount(user._id), 30000)
+    const interval = setInterval(() => fetchUnreadCount(user._id), 60000)
     return () => clearInterval(interval)
   }, [user?._id])
 

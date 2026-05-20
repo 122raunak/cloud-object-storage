@@ -79,7 +79,11 @@ router.patch("/:userId/read-all", verifyToken, validateParams(userIdParamsSchema
 
 // PATCH /:userId/:notifId/read
 router.patch("/:userId/:notifId/read", verifyToken, validateParams(userIdParamsSchema), requireOwnerOrAdmin, async (req, res) => {
-  await Notification.findByIdAndUpdate(req.params.notifId, { read: true })
+  const result = await Notification.findByIdAndUpdate(
+    req.params.notifId,
+    { $set: { read: true } },
+    { new: true }
+  )
   return res.status(200).json(new ApiResponse(200, null, "Notification marked as read"))
 })
 
